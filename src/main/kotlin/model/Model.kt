@@ -105,11 +105,7 @@ class Model(val w: Int, val h: Int, private val input: Input) {
         if (gameOver) {
             return
         }
-
-        // Update animations first
         updateAnimations()
-
-        // Only process input and game logic if no animations are running
         if (activeAnimations.isEmpty()) {
             input(input)
             if (nodes != 0) {
@@ -123,7 +119,9 @@ class Model(val w: Int, val h: Int, private val input: Input) {
                 if (!gameOver) {
                     newShape()
                 }
-                checkLine()
+                if (activeAnimations.isEmpty()) {
+                    checkLine()
+                }
             }
         } else {
             // During animation, pause the shape
@@ -253,7 +251,7 @@ class Model(val w: Int, val h: Int, private val input: Input) {
      * Handle keyboard click event for ' SPACE ' key.
      */
     private fun moveInstantDown(input: Input) {
-        if (input.getKey(KeyEvent.VK_SPACE) && !isPaused) {
+        if (input.getKey(KeyEvent.VK_SPACE) && !isPaused && activeAnimations.isEmpty()) {
             while (shape.active) {
                 shape.down()
                 if (nodes != 0 && !gameOver) {
@@ -262,7 +260,9 @@ class Model(val w: Int, val h: Int, private val input: Input) {
                             if (array[n.y + 1][n.x] != null) {
                                 shape.active = false
                                 newShape()
-                                checkLine()
+                                if (activeAnimations.isEmpty()) {
+                                    checkLine()
+                                }
                                 input.map[KeyEvent.VK_SPACE] = false
                                 return
                             }
@@ -274,7 +274,9 @@ class Model(val w: Int, val h: Int, private val input: Input) {
             if (!gameOver) {
                 newShape()
             }
-            checkLine()
+            if (activeAnimations.isEmpty()) {
+                checkLine()
+            }
             input.map[KeyEvent.VK_SPACE] = false
         }
     }
@@ -329,11 +331,10 @@ class Model(val w: Int, val h: Int, private val input: Input) {
             }
         }
         if (completedAnimations.isNotEmpty()) {
-            completedAnimations.sortByDescending { it.lineY }
             for (animation in completedAnimations) {
                 activeAnimations.remove(animation)
-                removeLine(animation.lineY)
             }
+            removeLines(completedAnimations.map { it.lineY })
             if (activeAnimations.isEmpty()) {
                 checkLine()
             }
@@ -344,32 +345,68 @@ class Model(val w: Int, val h: Int, private val input: Input) {
     }
 
     /**
-     * Remove a line from the field after animation completes
+     * Remove multiple lines from the field after animations complete.
      */
-    private fun removeLine(y: Int) {
-        for (x in 0 until w) {
-            if (array[y][x] != null) {
-                nodes--
-            }
-        }
-        array[y].fill(null)
-        for (i in y - 1 downTo 0) {
+    private fun removeLines(lineYs: List<Int>) {
+        if (lineYs.isEmpty()) return
+        val sortedLines = lineYs.sorted().reversed()
+        val linesToRemove = sortedLines.toSet()
+        for (lineY in linesToRemove) {
             for (x in 0 until w) {
-                val n = array[i][x]
-                if (n != null) {
-                    n.state = NOT_ACTIVE
-                    n.alpha = 1.0f
-                    n.blinkColor = null
-                    n.y++
-                    array[n.y][n.x] = n
-                    array[i][x] = null
+                if (array[lineY][x] != null) {
+                    nodes--
                 }
             }
+            array[lineY].fill(null)
         }
-        lines.inc()
+        var writeIndex = h - 1
+        for (readIndex in (h - 1) downTo 0) {
+            if (!linesToRemove.contains(readIndex)) {
+                if (readIndex != writeIndex) {
+                    for (x in 0 until w) {
+                        val node = array[readIndex][x]
+                        if (node != null) {
+                            node.state = NOT_ACTIVE
+                            node.alpha = 1.0f
+                            node.blinkColor = null
+                            val shiftDown = writeIndex - readIndex
+                            node.y += shiftDown
+                            array[writeIndex][x] = node
+                        } else {
+                            array[writeIndex][x] = null
+                        }
+                        array[readIndex][x] = null
+                    }
+                } else {
+                    for (x in 0 until w) {
+                        val node = array[readIndex][x]
+                        if (node != null) {
+                            node.state = NOT_ACTIVE
+                            node.alpha = 1.0f
+                            node.blinkColor = null
+                        }
+                    }
+                }
+                writeIndex--
+            }
+        }
+        for (i in 0..writeIndex) {
+            array[i].fill(null)
+        }
+        val numLinesRemoved = linesToRemove.size
+        repeat(numLinesRemoved) {
+            lines.inc()
+        }
         if (lines.get().toInt() % 20 == 0) {
             level++
         }
+    }
+
+    /**
+     * Remove a single line (legacy method, kept for compatibility)
+     */
+    private fun removeLine(y: Int) {
+        removeLines(listOf(y))
     }
 
     /**
@@ -379,9 +416,10 @@ class Model(val w: Int, val h: Int, private val input: Input) {
         if (activeAnimations.isNotEmpty()) {
             return
         }
+        val animatingLines = activeAnimations.map { it.lineY }.toSet()
         val completeLines = mutableListOf<Int>()
         for (i in array.size - 1 downTo 0) {
-            if (!array[i].contains(null)) {
+            if (!array[i].contains(null) && !animatingLines.contains(i)) {
                 completeLines.add(i)
             }
         }
