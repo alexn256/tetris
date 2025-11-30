@@ -392,6 +392,6 @@ class Model(val w: Int, val h: Int, private val input: Input) {
         g.fillRect(22, 242, 156, 56)
         g.color = Color.WHITE
         g.font = Font("Arial", Font.BOLD, 16)
-        if (m == "pause") g.drawString(m.toUpperCase(), 73, 275) else g.drawString(m.toUpperCase(), 45, 275)
+        if (m == "pause") g.drawString(m.uppercase(), 73, 275) else g.drawString(m.uppercase(), 45, 275)
     }
 }

@@ -38,13 +38,13 @@ class About(s: Dimension): JDialog() {
         val authorLabel = JLabel("Alexander Naumov", SwingConstants.CENTER)
         authorLabel.preferredSize = Dimension(s.width + 18, 10)
 
-        val infoLabel = JLabel("<html><a href=\"https://vk.com/vomuana\">https://vk.com/vomuana</a></html>", SwingConstants.CENTER)
+        val infoLabel = JLabel("<html><a href=\"https://www.linkedin.com/in/alexander-naumov-913991134\">https://www.linkedin.com/in/alexander-naumov-913991134</a></html>", SwingConstants.CENTER)
         infoLabel.font = font
         infoLabel.preferredSize = Dimension(s.width + 18, 20)
         infoLabel.cursor = Cursor(Cursor.HAND_CURSOR)
         infoLabel.addMouseListener(object : MouseAdapter() {
             override fun mouseClicked(e: MouseEvent?) {
-                Desktop.getDesktop().browse(URI("https://vk.com/vomuana"));
+                Desktop.getDesktop().browse(URI("https://www.linkedin.com/in/alexander-naumov-913991134"));
             }
         })
 

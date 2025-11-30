@@ -62,7 +62,7 @@ object Configuration {
      * Get file path for game.dat file, depending on the os.
      */
     private fun filePath():String {
-        val os = System.getProperty("os.name").toLowerCase()
+        val os = System.getProperty("os.name").lowercase()
         val user = System.getProperty("user.name")
         if (os.contains("windows")) {
             return "C:\\tetris\\game.dat"
