@@ -43,6 +43,11 @@ class Model(val w: Int, val h: Int, private val input: Input) {
     private var isPaused: Boolean
 
     /**
+     * Show whether shadow is enabled.
+     */
+    private var isShadowEnabled: Boolean
+
+    /**
      * Current Shape.
      */
     var shape: Shape
@@ -86,6 +91,7 @@ class Model(val w: Int, val h: Int, private val input: Input) {
         gameOver = false
         nodes = 0
         isPaused = false
+        isShadowEnabled = true
         state = true
         initNextShape()
         level = LEVEL_1
@@ -141,6 +147,7 @@ class Model(val w: Int, val h: Int, private val input: Input) {
         rotate(input)
         pause(input)
         moveInstantDown(input)
+        toggleShadow(input)
         updateShadow()
     }
 
@@ -278,6 +285,16 @@ class Model(val w: Int, val h: Int, private val input: Input) {
                 checkLine()
             }
             input.map[KeyEvent.VK_SPACE] = false
+        }
+    }
+
+    /**
+     * Enables shadow mode.
+     */
+    private fun toggleShadow(input: Input) {
+        if (input.getKey(KeyEvent.VK_S)) {
+            isShadowEnabled = !isShadowEnabled
+            input.map[KeyEvent.VK_S] = false
         }
     }
 
@@ -440,7 +457,7 @@ class Model(val w: Int, val h: Int, private val input: Input) {
      * Render game field (Shape + all not active Nodes).
      */
     fun render(g: Graphics) {
-        if (!gameOver) {
+        if (!gameOver && isShadowEnabled) {
             renderShadow(g)
         }
         shape.render(g)
