@@ -13,6 +13,16 @@ enum class State {
     /**
      * Not active node (part of Model array).
      */
-    NOT_ACTIVE
+    NOT_ACTIVE,
+
+    /**
+     * Node is blinking during line clear animation.
+     */
+    BLINKING,
+
+    /**
+     * Node is disappearing (fading out).
+     */
+    DISAPPEARING
 
 }

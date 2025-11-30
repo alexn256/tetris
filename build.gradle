@@ -1,5 +1,6 @@
 plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.9.24'
+    id 'application'
 }
 
 group 'com.games.tetris'
@@ -7,6 +8,7 @@ version '1.0-SNAPSHOT'
 
 repositories {
     mavenCentral()
+    maven { url 'https://maven.pkg.jetbrains.space/public/p/compose/dev' }
 }
 
 java {
@@ -23,4 +25,8 @@ dependencies {
 
 kotlin {
     jvmToolchain(21)
+}
+
+application {
+    mainClass = 'GameLauncherKt'
 }

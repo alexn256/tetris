@@ -72,6 +72,16 @@ class Model(val w: Int, val h: Int, private val input: Input) {
      */
     var gameOver: Boolean
 
+    /**
+     * Queue of line animations currently running
+     */
+    private val activeAnimations = mutableListOf<LineAnimation>()
+
+    /**
+     * Lines pending to be removed after animation completes
+     */
+    private val linesToRemove = mutableListOf<Int>()
+
     init {
         gameOver = false
         nodes = 0
@@ -95,19 +105,31 @@ class Model(val w: Int, val h: Int, private val input: Input) {
         if (gameOver) {
             return
         }
-        input(input)
-        if (nodes != 0) {
-            checkCollisions()
-            if (gameOver) {
-                return
+
+        // Update animations first
+        updateAnimations()
+
+        // Only process input and game logic if no animations are running
+        if (activeAnimations.isEmpty()) {
+            input(input)
+            if (nodes != 0) {
+                checkCollisions()
+                if (gameOver) {
+                    return
+                }
             }
-        }
-        state = shape.active
-        if (!state) {
-            if (!gameOver) {
-                newShape()
+            state = shape.active
+            if (!state) {
+                if (!gameOver) {
+                    newShape()
+                }
+                checkLine()
             }
-            checkLine()
+        } else {
+            // During animation, pause the shape
+            if (!shape.isPaused) {
+                shape.pause()
+            }
         }
     }
 
@@ -215,7 +237,7 @@ class Model(val w: Int, val h: Int, private val input: Input) {
      * Handle keyboard click event for ' P ' key.
      */
     private fun pause(input: Input) {
-        if (input.getKey(KeyEvent.VK_P)) {
+        if (input.getKey(KeyEvent.VK_P) && activeAnimations.isEmpty()) {
             if (!isPaused) {
                 isPaused = true
                 shape.pause()
@@ -296,36 +318,82 @@ class Model(val w: Int, val h: Int, private val input: Input) {
     }
 
     /**
-     * Checks whether the field contains full lines.
+     * Update all active line animations
      */
-    private fun checkLine() {
-        var y = 0
-        var count = 0
-        for (i in array.size - 1 downTo 0) {
-            if (!array[i].contains(null)) {
-                y = i
-                count++
-            }
-            if (count > 0) {
-                break
+    private fun updateAnimations() {
+        val completedAnimations = mutableListOf<LineAnimation>()
+        for (animation in activeAnimations) {
+            val stillRunning = animation.update()
+            if (!stillRunning) {
+                completedAnimations.add(animation)
             }
         }
-        if (count > 0) {
-            array[y].fill(null)
-            for (i in y - 1 downTo 0) {
-                for (n in array[i]) {
-                    if (n != null) {
-                        n.y++
-                        array[n.y][n.x] = n
-                        array[n.y - 1][n.x] = null
-                    }
+        if (completedAnimations.isNotEmpty()) {
+            completedAnimations.sortByDescending { it.lineY }
+            for (animation in completedAnimations) {
+                activeAnimations.remove(animation)
+                removeLine(animation.lineY)
+            }
+            if (activeAnimations.isEmpty()) {
+                checkLine()
+            }
+        }
+        if (activeAnimations.isEmpty() && shape.isPaused && !isPaused) {
+            shape.resume()
+        }
+    }
+
+    /**
+     * Remove a line from the field after animation completes
+     */
+    private fun removeLine(y: Int) {
+        for (x in 0 until w) {
+            if (array[y][x] != null) {
+                nodes--
+            }
+        }
+        array[y].fill(null)
+        for (i in y - 1 downTo 0) {
+            for (x in 0 until w) {
+                val n = array[i][x]
+                if (n != null) {
+                    n.state = NOT_ACTIVE
+                    n.alpha = 1.0f
+                    n.blinkColor = null
+                    n.y++
+                    array[n.y][n.x] = n
+                    array[i][x] = null
                 }
             }
-            lines.inc()
-            if (lines.get().toInt() % 20 == 0) {
-                level++
+        }
+        lines.inc()
+        if (lines.get().toInt() % 20 == 0) {
+            level++
+        }
+    }
+
+    /**
+     * Checks whether the field contains full lines and starts animation.
+     */
+    private fun checkLine() {
+        if (activeAnimations.isNotEmpty()) {
+            return
+        }
+        val completeLines = mutableListOf<Int>()
+        for (i in array.size - 1 downTo 0) {
+            if (!array[i].contains(null)) {
+                completeLines.add(i)
             }
-            checkLine()
+        }
+        for (lineY in completeLines) {
+            val animation = LineAnimation(lineY, w)
+            for (x in 0 until w) {
+                val node = array[lineY][x]
+                if (node != null) {
+                    animation.addNode(x, node)
+                }
+            }
+            activeAnimations.add(animation)
         }
     }
 
@@ -345,7 +413,8 @@ class Model(val w: Int, val h: Int, private val input: Input) {
                 }
             }
         }
-        if (shape.isPaused) {
+        // Show pause banner only if actually paused (not during line animation)
+        if (shape.isPaused && activeAnimations.isEmpty()) {
             gameStateRender(g, "pause")
         }
         if (gameOver) {

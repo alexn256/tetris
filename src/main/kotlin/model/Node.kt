@@ -24,6 +24,16 @@ class Node(var x: Int,
     var state = ACTIVE
 
     /**
+     * Alpha channel for fade-out animation (0.0 - fully transparent, 1.0 - fully opaque).
+     */
+    var alpha: Float = 1.0f
+
+    /**
+     * Blink color (used during line clear animation).
+     */
+    var blinkColor: Color? = null
+
+    /**
      * Rotate node clockwise.
      */
     fun rotate(a: Node) {
@@ -90,17 +100,26 @@ class Node(var x: Int,
      */
     fun render(g: Graphics) {
         g as Graphics2D
+        val originalComposite = g.composite
+        if (alpha < 1.0f) {
+            g.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha)
+        }
         g.color = Color.BLACK
         if (!stats) {
             g.fillRect(x * n, (y + (sh / n)) * n, n, n)
-            g.color = color.value
+            val renderColor = when {
+                state == BLINKING && blinkColor != null -> blinkColor!!
+                state == DISAPPEARING -> color.value
+                else -> color.value
+            }
+            g.color = renderColor
             g.fill(RoundRectangle2D.Float(((x * n) + 1).toFloat(), (((y + (sh / n)) * n) + 1).toFloat(), 18.0F, 18.0F, 6.0F, 6.0F))
         } else {
             g.fillRect(x, y, n, n)
             g.color = color.value
             g.fill(RoundRectangle2D.Float((x + 1).toFloat(), (y + 1).toFloat(), 18.0F, 18.0F, 6.0F, 6.0F))
         }
-        g.composite = AlphaComposite.SrcAtop
+        g.composite = originalComposite
     }
 
     /**

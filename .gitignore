@@ -1,7 +1,11 @@
 .gradle
 .idea
+.claude
+.kotlin
 build
 out
 *.class
 *.ttr
 .gitignore
+gradlew.bat
+gradlew
