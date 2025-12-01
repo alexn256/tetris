@@ -114,11 +114,9 @@ class Model(val w: Int, val h: Int, private val input: Input) {
         updateAnimations()
         if (activeAnimations.isEmpty()) {
             input(input)
-            if (nodes != 0) {
-                checkCollisions()
-                if (gameOver) {
-                    return
-                }
+            checkCollisions()
+            if (gameOver) {
+                return
             }
             state = shape.active
             if (!state) {
@@ -261,20 +259,10 @@ class Model(val w: Int, val h: Int, private val input: Input) {
         if (input.getKey(KeyEvent.VK_SPACE) && !isPaused && activeAnimations.isEmpty()) {
             while (shape.active) {
                 shape.down()
-                if (nodes != 0 && !gameOver) {
-                    for (n in shape.body) {
-                        if (n.y < array.size - 1) {
-                            if (array[n.y + 1][n.x] != null) {
-                                shape.active = false
-                                newShape()
-                                if (activeAnimations.isEmpty()) {
-                                    checkLine()
-                                }
-                                input.map[KeyEvent.VK_SPACE] = false
-                                return
-                            }
-                        }
-                    }
+                checkCollisions()
+                if (shape.isCollision) {
+                    shape.active = false
+                    break
                 }
             }
             shape.active = false
@@ -312,9 +300,6 @@ class Model(val w: Int, val h: Int, private val input: Input) {
         for (n in shape.body) {
             if (n.y < array.size - 1) {
                 if (array[n.y + 1][n.x] != null) {
-                    if (n.y == 1) {
-                        gameOver = true
-                    }
                     shape.isCollision = true
                     return
                 }
@@ -333,6 +318,13 @@ class Model(val w: Int, val h: Int, private val input: Input) {
         }
         shape.timer.cancel()
         shape = Shape(nextType, nextColor, level)
+        for (n in shape.body) {
+            if (array[n.y][n.x] != null) {
+                gameOver = true
+                shape.pause()
+                return
+            }
+        }
         initNextShape()
     }
 
