@@ -6,6 +6,7 @@ import java.util.*
 import model.State.NOT_ACTIVE
 import model.Level.LEVEL_1
 import util.GameSerializer
+import util.SoundManager
 import java.awt.Color
 import java.awt.Font
 import java.awt.Graphics2D
@@ -322,6 +323,7 @@ class Model(val w: Int, val h: Int, private val input: Input) {
             if (array[n.y][n.x] != null) {
                 gameOver = true
                 shape.pause()
+                SoundManager.playGameOverSound()
                 return
             }
         }
@@ -406,6 +408,12 @@ class Model(val w: Int, val h: Int, private val input: Input) {
         repeat(numLinesRemoved) {
             lines.inc()
         }
+
+        // Play sound when lines are cleared
+        if (numLinesRemoved > 0) {
+            SoundManager.playLineClearSound()
+        }
+
         if (lines.get().toInt() % 20 == 0) {
             level++
         }

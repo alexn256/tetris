@@ -8,7 +8,6 @@ version '1.0-SNAPSHOT'
 
 repositories {
     mavenCentral()
-    maven { url 'https://maven.pkg.jetbrains.space/public/p/compose/dev' }
 }
 
 java {
