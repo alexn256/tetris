@@ -15,6 +15,7 @@ import java.awt.event.WindowEvent
 import javax.swing.JOptionPane
 import javax.swing.WindowConstants
 import kotlin.system.exitProcess
+import kotlinx.coroutines.*
 
 import config.Configuration.height as h
 import config.Configuration.width as w
@@ -22,7 +23,7 @@ import config.Configuration.width as w
 /**
  * The game engine.
  */
-class Game : Runnable {
+class Game {
 
     val updateRate = 60.0f
     val updateInterval = second / updateRate
@@ -34,7 +35,8 @@ class Game : Runnable {
 
     lateinit var display: Display
     lateinit var g: Graphics
-    lateinit var gameThread: Thread
+    private var gameJob: Job? = null
+    private val gameScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     private val keys: Input
     private val model: Model
@@ -82,7 +84,7 @@ class Game : Runnable {
     /**
      * the core loop of game.
      */
-    override fun run() {
+    private suspend fun run() {
         createAndShowGui()
         var fps = 0
         var upd = 0
@@ -111,7 +113,7 @@ class Game : Runnable {
                 render()
                 fps++
             } else {
-                Thread.sleep(idleTime)
+                delay(idleTime)
             }
             if (counter >= second) {
                 fps = 0
@@ -123,15 +125,17 @@ class Game : Runnable {
     }
 
     /**
-     * Shutdown game thread.
+     * Shutdown game coroutine.
      */
     private fun shutDown() {
-        if (Thread.currentThread() != gameThread) {
-            running = false
-            display.destroy()
-            gameThread.join()
-            exitProcess(0)
+        running = false
+        display.destroy()
+        runBlocking {
+            gameJob?.join()
         }
+        gameScope.cancel()
+        util.SoundManager.shutdown()
+        exitProcess(0)
     }
 
     /**
@@ -147,15 +151,15 @@ class Game : Runnable {
     }
 
     /**
-     * Start game thread.
+     * Start game coroutine.
      */
     fun start() {
         if (running) {
             return
         }
         running = true
-        gameThread = Thread(this)
-        gameThread.name = "gameThread"
-        gameThread.start()
+        gameJob = gameScope.launch {
+            run()
+        }
     }
 }

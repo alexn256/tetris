@@ -43,7 +43,7 @@ class Display(val input:Input) {
         }
         window = JFrame()
         window.title = appName
-        window.iconImage = ImageIcon(Thread.currentThread().getContextClassLoader().getResource(logo)).image
+        window.iconImage = ImageIcon(this::class.java.classLoader.getResource(logo)).image
 
         val size = Dimension(w, gh + sh)
 

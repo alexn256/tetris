@@ -1,8 +1,8 @@
 package util
 
 import javax.sound.sampled.*
-import kotlin.concurrent.thread
 import kotlin.math.sin
+import kotlinx.coroutines.*
 
 /**
  * Manages sound effects for the game.
@@ -10,6 +10,7 @@ import kotlin.math.sin
 object SoundManager {
 
     private var enabled = true
+    private val soundScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     /**
      * Enable or disable all sounds.
@@ -19,17 +20,24 @@ object SoundManager {
     }
 
     /**
+     * Cleanup coroutine scope on shutdown.
+     */
+    fun shutdown() {
+        soundScope.cancel()
+    }
+
+    /**
      * Plays sound when lines are cleared.
      */
     fun playLineClearSound() {
         if (!enabled) return
-        thread {
+        soundScope.launch {
             try {
-                playTone(523.0, 100) // C5
-                Thread.sleep(50)
-                playTone(659.0, 100) // E5
-                Thread.sleep(50)
-                playTone(784.0, 150) // G5
+                playTone(523.0, 100)
+                delay(50)
+                playTone(659.0, 100)
+                delay(50)
+                playTone(784.0, 150)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -41,15 +49,15 @@ object SoundManager {
      */
     fun playGameOverSound() {
         if (!enabled) return
-        thread {
+        soundScope.launch {
             try {
-                playTone(392.0, 200) // G4
-                Thread.sleep(100)
-                playTone(349.0, 200) // F4
-                Thread.sleep(100)
-                playTone(294.0, 200) // D4
-                Thread.sleep(100)
-                playTone(262.0, 400) // C4 (longer)
+                playTone(392.0, 200)
+                delay(100)
+                playTone(349.0, 200)
+                delay(100)
+                playTone(294.0, 200)
+                delay(100)
+                playTone(262.0, 400)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -77,10 +85,10 @@ object SoundManager {
         }
         val audioFormat = AudioFormat(
             sampleRate.toFloat(),
-            8,  // 8-bit
-            2,  // stereo
-            true,  // signed
-            false  // little-endian
+            8,
+            2,
+            true,
+            false
         )
         val info = DataLine.Info(SourceDataLine::class.java, audioFormat)
         val line = AudioSystem.getLine(info) as SourceDataLine
